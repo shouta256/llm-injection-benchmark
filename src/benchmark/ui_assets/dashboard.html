@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Prompt Injection Benchmark Dashboard</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --panel: #fffdf8;
+      --panel-soft: #f8f4eb;
+      --line: #ddd6c8;
+      --line-strong: #c8beab;
+      --text: #1f2b24;
+      --muted: #687168;
+      --accent: #245a49;
+      --accent-soft: #e3efe9;
+      --danger: #8f3c2d;
+      --danger-soft: #f4e5df;
+      --shadow: 0 14px 34px rgba(40, 45, 35, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --mono: "SFMono-Regular", "IBM Plex Mono", Consolas, monospace;
+      --sans: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top right, rgba(36, 90, 73, 0.08), transparent 28%),
+        linear-gradient(180deg, #f7f3ec 0%, var(--bg) 100%);
+    }
+
+    h1, h2, h3, h4, p {
+      margin: 0;
+    }
+
+    .page {
+      width: min(1240px, calc(100% - 28px));
+      margin: 14px auto 28px;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 18px;
+      position: sticky;
+      top: 14px;
+    }
+
+    .main {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow,
+    .chip,
+    .artifact-links a,
+    .artifact-links span,
+    .tag,
+    .job-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      color: var(--muted);
+      padding: 7px 11px;
+      font-size: 0.8rem;
+      line-height: 1;
+      font-family: var(--mono);
+      text-decoration: none;
+    }
+
+    .header-card {
+      padding: 20px 22px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-copy h1 {
+      margin-top: 10px;
+      font-size: clamp(1.55rem, 3vw, 2.3rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .header-copy p {
+      margin-top: 8px;
+      max-width: 640px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.96rem;
+    }
+
+    .path-badge {
+      max-width: 320px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      font-family: var(--mono);
+      overflow-wrap: anywhere;
+      text-align: right;
+    }
+
+    .sidebar h2 {
+      margin-top: 10px;
+      font-size: 1.35rem;
+      line-height: 1.1;
+    }
+
+    .sidebar p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 0.92rem;
+      font-family: var(--mono);
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: 2px solid rgba(36, 90, 73, 0.16);
+      border-color: var(--accent);
+    }
+
+    .split {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .model-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .model-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .model-option input {
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .model-meta {
+      min-width: 0;
+    }
+
+    .model-meta strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .model-meta span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: var(--mono);
+      overflow-wrap: anywhere;
+    }
+
+    details.advanced,
+    details.more {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel-soft);
+    }
+
+    details.advanced {
+      padding: 10px 12px 12px;
+    }
+
+    details.more {
+      overflow: hidden;
+    }
+
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-body {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .checks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .check input {
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      transition: transform 140ms ease, opacity 140ms ease, box-shadow 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 12px 24px rgba(36, 90, 73, 0.18);
+    }
+
+    .secondary {
+      background: #2f3f37;
+      color: white;
+    }
+
+    .ghost {
+      background: var(--panel-soft);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .flash {
+      min-height: 18px;
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 0.82rem;
+      line-height: 1.4;
+      font-family: var(--mono);
+    }
+
+    .overview,
+    .status-card,
+    .results-card,
+    .leaderboard-card,
+    .chart-card {
+      padding: 18px;
+    }
+
+    .summary-grid,
+    .result-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .status-results {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1.05fr 1.35fr;
+    }
+
+    .metric-card {
+      min-width: 0;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .metric-card label {
+      display: block;
+      margin-bottom: 9px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metric-card .value {
+      display: block;
+      font-size: clamp(1.35rem, 2.2vw, 1.95rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-card .hint {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .tag-row,
+    .artifact-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .job-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .job-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .job-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      overflow-wrap: anywhere;
+    }
+
+    .job-badge.running {
+      color: #8a5e17;
+      background: #f7edcf;
+      border-color: #ead8a0;
+    }
+
+    .job-badge.succeeded {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: #bfd8cc;
+    }
+
+    .job-badge.failed {
+      color: var(--danger);
+      background: var(--danger-soft);
+      border-color: #e2c2b8;
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #ece7dc;
+      border: 1px solid var(--line);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #3f836b);
+      transition: width 180ms ease;
+    }
+
+    .job-meta {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+
+    .mini {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      min-width: 0;
+    }
+
+    .mini label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .mini strong {
+      display: block;
+      font-size: 0.95rem;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 540px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #eee7dc;
+      text-align: left;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: var(--mono);
+      background: var(--panel-soft);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .chart-card .figure-frame,
+    .detail-panel .figure-frame {
+      min-height: 220px;
+    }
+
+    .figure-frame {
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .figure-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      padding: 20px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+
+    .more summary {
+      padding: 16px 18px;
+    }
+
+    .details-body {
+      display: grid;
+      gap: 18px;
+      padding: 0 18px 18px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .detail-panel h4 {
+      margin-bottom: 10px;
+      font-size: 0.98rem;
+    }
+
+    .logbox {
+      min-height: 220px;
+      max-height: 340px;
+      overflow: auto;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid #22352c;
+      background: #1d2a24;
+      color: #d9ece1;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .muted-text {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1120px) {
+      .page,
+      .status-results,
+      .details-body {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 18px, 100%);
+        margin: 10px auto 20px;
+      }
+
+      .header-card,
+      .overview,
+      .status-card,
+      .results-card,
+      .leaderboard-card,
+      .chart-card,
+      .sidebar {
+        padding: 16px;
+      }
+
+      .header-card {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .path-badge {
+        max-width: 100%;
+        text-align: left;
+      }
+
+      .summary-grid,
+      .result-grid,
+      .job-meta,
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="panel sidebar">
+      <div class="eyebrow">Controls</div>
+      <h2>Run Benchmark</h2>
+      <p>Use the same backend and output files as the CLI. Start here, then review the latest summary on the right.</p>
+
+      <form id="run-form">
+        <div class="field">
+          <label for="backend">Backend</label>
+          <select id="backend" name="backend">
+            <option value="ollama">ollama</option>
+            <option value="mock">mock</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Models</label>
+          <div id="model-selector" class="model-grid"></div>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced Settings</summary>
+          <div class="advanced-body">
+            <div class="field">
+              <label for="secret">Secret Token</label>
+              <input id="secret" name="secret" type="text">
+            </div>
+
+            <div class="split">
+              <div class="field">
+                <label for="temperature">Temperature</label>
+                <input id="temperature" name="temperature" type="number" step="0.1" min="0">
+              </div>
+              <div class="field">
+                <label for="timeout">Timeout (sec)</label>
+                <input id="timeout" name="timeout" type="number" step="1" min="1">
+              </div>
+            </div>
+
+            <div class="checks">
+              <label class="check"><input type="checkbox" id="overwrite"> Overwrite `results.csv`</label>
+              <label class="check"><input type="checkbox" id="resume"> Resume existing rows</label>
+              <label class="check"><input type="checkbox" id="generate-artifacts" checked> Generate artifacts after run</label>
+            </div>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button type="submit" class="primary" id="run-button">Run Benchmark</button>
+          <button type="button" class="secondary" id="demo-button">Run Mock Demo</button>
+          <button type="button" class="ghost" id="artifacts-button">Generate Artifacts Only</button>
+          <button type="button" class="ghost" id="refresh-button">Refresh</button>
+        </div>
+      </form>
+
+      <div id="flash" class="flash"></div>
+    </aside>
+
+    <main class="main">
+      <section class="panel header-card">
+        <div class="header-copy">
+          <div class="eyebrow">LLM Prompt Injection Benchmark</div>
+          <h1>Security Dashboard</h1>
+          <p>Run local models, track progress, and compare attack success rates without digging through CSV files.</p>
+        </div>
+        <div class="path-badge" id="project-root">Loading...</div>
+      </section>
+
+      <section class="panel overview">
+        <div class="section-head">
+          <h3>Overview</h3>
+          <span class="chip" id="dataset-meta">Loading...</span>
+        </div>
+        <div class="summary-grid">
+          <div class="metric-card">
+            <label>Total Prompts</label>
+            <span class="value" id="prompt-count">0</span>
+            <span class="hint">Dataset size</span>
+          </div>
+          <div class="metric-card">
+            <label>Models</label>
+            <span class="value" id="model-count">0</span>
+            <span class="hint">Configured in `models.json`</span>
+          </div>
+          <div class="metric-card">
+            <label>Aggregate ASR</label>
+            <span class="value" id="aggregate-asr">--</span>
+            <span class="hint">Lower is better</span>
+          </div>
+          <div class="metric-card">
+            <label>Best Model</label>
+            <span class="value" id="best-model">--</span>
+            <span class="hint">Current leaderboard leader</span>
+          </div>
+        </div>
+        <div id="category-list" class="tag-row"></div>
+      </section>
+
+      <section class="status-results">
+        <section class="panel status-card">
+          <div class="job-top">
+            <div>
+              <div class="job-title" id="job-label">No active job</div>
+              <div class="job-subtitle" id="job-message">Ready</div>
+            </div>
+            <span class="job-badge" id="job-kind">idle</span>
+          </div>
+          <div class="progress"><span id="job-progress"></span></div>
+          <div class="job-meta">
+            <div class="mini">
+              <label>Started</label>
+              <strong id="job-started">--</strong>
+            </div>
+            <div class="mini">
+              <label>Finished</label>
+              <strong id="job-finished">--</strong>
+            </div>
+            <div class="mini">
+              <label>Progress</label>
+              <strong id="job-ratio">0 / 0</strong>
+            </div>
+            <div class="mini">
+              <label>Error</label>
+              <strong id="job-error">none</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel results-card">
+          <div class="section-head">
+            <h3>Latest Result</h3>
+            <span class="chip">Outputs</span>
+          </div>
+          <div class="result-grid">
+            <div class="metric-card">
+              <label>Evaluations</label>
+              <span class="value" id="eval-count">--</span>
+              <span class="hint">Prompt-model pairs</span>
+            </div>
+            <div class="metric-card">
+              <label>Breaches</label>
+              <span class="value" id="breach-count">--</span>
+              <span class="hint">Detected FLAG leaks</span>
+            </div>
+            <div class="metric-card">
+              <label>Weakest Category</label>
+              <span class="value" id="weakest-category">--</span>
+              <span class="hint">Highest mean ASR</span>
+            </div>
+            <div class="metric-card">
+              <label>Strongest Category</label>
+              <span class="value" id="strongest-category">--</span>
+              <span class="hint">Lowest mean ASR</span>
+            </div>
+          </div>
+          <div id="artifact-links" class="artifact-links"></div>
+        </section>
+      </section>
+
+      <section class="panel leaderboard-card">
+        <div class="section-head">
+          <h3>Leaderboard</h3>
+          <span class="chip">Overall ASR</span>
+        </div>
+        <div id="leaderboard-table"></div>
+      </section>
+
+      <section class="panel chart-card">
+        <div class="section-head">
+          <h3>Overall Chart</h3>
+          <span class="chip">Main Figure</span>
+        </div>
+        <div class="figure-frame" id="overall-figure"></div>
+      </section>
+
+      <details class="panel more">
+        <summary>More Details</summary>
+        <div class="details-body">
+          <div class="detail-panel">
+            <h4>Per-Category Heatmap</h4>
+            <div class="figure-frame" id="heatmap-figure"></div>
+          </div>
+          <div class="detail-panel">
+            <h4>Execution Log</h4>
+            <div class="logbox" id="logbox">Waiting for job activity.</div>
+          </div>
+        </div>
+      </details>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      modelsInitialized: false
+    };
+
+    const flash = document.getElementById("flash");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function formatPercent(value) {
+      const numeric = Number(value);
+      if (Number.isNaN(numeric)) {
+        return "--";
+      }
+      return `${numeric.toFixed(2)}%`;
+    }
+
+    function formatStamp(value) {
+      if (!value) {
+        return "--";
+      }
+      return String(value).replace("T", " ").replace("+00:00", " UTC");
+    }
+
+    function compactPath(value) {
+      if (!value) {
+        return "Loading...";
+      }
+      const parts = String(value).split("/").filter(Boolean);
+      if (parts.length <= 4) {
+        return value;
+      }
+      return `.../${parts.slice(-4).join("/")}`;
+    }
+
+    function setFlash(message, isError = false) {
+      flash.textContent = message;
+      flash.style.color = isError ? "var(--danger)" : "var(--accent)";
+      if (message) {
+        window.clearTimeout(setFlash.timer);
+        setFlash.timer = window.setTimeout(() => {
+          flash.textContent = "";
+        }, 5000);
+      }
+    }
+
+    async function postJson(url, payload = {}) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed.");
+      }
+      return data;
+    }
+
+    function renderModelSelector(models) {
+      const container = document.getElementById("model-selector");
+      container.innerHTML = models.map((model) => `
+        <label class="model-option">
+          <input type="checkbox" name="model" value="${escapeHtml(model.alias)}" checked>
+          <span class="model-meta">
+            <strong>${escapeHtml(model.alias)}</strong>
+            <span>${escapeHtml(model.model_name)}</span>
+          </span>
+        </label>
+      `).join("");
+      state.modelsInitialized = true;
+    }
+
+    function getSelectedModels() {
+      return [...document.querySelectorAll('input[name="model"]:checked')].map((input) => input.value);
+    }
+
+    function renderProject(project) {
+      const root = document.getElementById("project-root");
+      root.textContent = compactPath(project.root);
+      root.title = project.root;
+
+      document.getElementById("dataset-meta").textContent = `${project.prompt_dataset.categories.length} categories`;
+      document.getElementById("prompt-count").textContent = project.prompt_dataset.total_prompts;
+      document.getElementById("model-count").textContent = project.models.length;
+
+      if (!state.modelsInitialized) {
+        renderModelSelector(project.models);
+        document.getElementById("secret").value = project.default_secret;
+        document.getElementById("temperature").value = project.default_temperature;
+        document.getElementById("timeout").value = project.default_timeout_seconds;
+      }
+
+      const categories = project.prompt_dataset.categories.map((item) => `
+        <span class="tag"><strong>${escapeHtml(item.label)}</strong> ${item.count}</span>
+      `).join("");
+      document.getElementById("category-list").innerHTML = categories;
+    }
+
+    function renderJob(job) {
+      const status = job.status || "idle";
+      const processed = Number(job.processed || 0);
+      const total = Number(job.total || 0);
+      const ratio = total > 0 ? Math.min(100, (processed / total) * 100) : 0;
+
+      const badge = document.getElementById("job-kind");
+      badge.textContent = job.kind || "idle";
+      badge.className = `job-badge ${status}`;
+
+      document.getElementById("job-label").textContent = job.label || "No active job";
+      document.getElementById("job-message").textContent = job.message || "Ready";
+      document.getElementById("job-started").textContent = formatStamp(job.started_at);
+      document.getElementById("job-finished").textContent = formatStamp(job.finished_at);
+      document.getElementById("job-ratio").textContent = `${processed} / ${total}`;
+      document.getElementById("job-error").textContent = job.error || "none";
+      document.getElementById("job-progress").style.width = `${ratio}%`;
+
+      const logText = (job.logs && job.logs.length) ? job.logs.join("\n") : "Waiting for job activity.";
+      document.getElementById("logbox").textContent = logText;
+
+      const running = status === "running";
+      document.getElementById("run-button").disabled = running;
+      document.getElementById("demo-button").disabled = running;
+      document.getElementById("artifacts-button").disabled = running;
+    }
+
+    function renderSummary(summary) {
+      document.getElementById("aggregate-asr").textContent = summary ? formatPercent(summary.overall_asr_percent) : "--";
+      document.getElementById("best-model").textContent = summary ? summary.strongest_model : "--";
+      document.getElementById("eval-count").textContent = summary ? summary.total_evaluations : "--";
+      document.getElementById("breach-count").textContent = summary ? summary.total_breaches : "--";
+      document.getElementById("weakest-category").textContent = summary?.most_vulnerable_category?.label || "--";
+      document.getElementById("strongest-category").textContent = summary?.most_resistant_category?.label || "--";
+    }
+
+    function renderArtifactLinks(files) {
+      const labels = [
+        ["results_csv", "results.csv"],
+        ["leaderboard_csv", "leaderboard.csv"],
+        ["category_metrics_csv", "category_metrics.csv"],
+        ["report_md", "report.md"],
+        ["report_pdf", "report.pdf"]
+      ];
+
+      const links = labels.map(([key, label]) => {
+        const item = files[key];
+        if (!item) {
+          return `<span>${label}</span>`;
+        }
+        return `<a href="${item.url}" target="_blank" rel="noreferrer">${label}</a>`;
+      }).join("");
+      document.getElementById("artifact-links").innerHTML = links;
+    }
+
+    function renderLeaderboard(rows) {
+      const container = document.getElementById("leaderboard-table");
+      if (!rows || rows.length === 0) {
+        container.innerHTML = '<div class="empty">Run the benchmark or generate artifacts to populate the leaderboard.</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Model</th>
+                <th>ASR</th>
+                <th>Breaches</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => `
+                <tr>
+                  <td>${escapeHtml(row.rank)}</td>
+                  <td>${escapeHtml(row.model_alias)}</td>
+                  <td>${formatPercent(row.asr_percent)}</td>
+                  <td>${escapeHtml(row.breaches)} / ${escapeHtml(row.total_prompts)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderFigure(containerId, file, label) {
+      const container = document.getElementById(containerId);
+      if (!file) {
+        container.innerHTML = `<div class="empty">${label} will appear here after artifact generation.</div>`;
+        return;
+      }
+      const stamp = file.mtime || Date.now();
+      container.innerHTML = `<img src="${file.url}?v=${stamp}" alt="${label}">`;
+    }
+
+    function collectRunPayload() {
+      return {
+        backend: document.getElementById("backend").value,
+        secret: document.getElementById("secret").value.trim(),
+        temperature: Number(document.getElementById("temperature").value || 0),
+        timeout: Number(document.getElementById("timeout").value || 120),
+        models: getSelectedModels(),
+        overwrite: document.getElementById("overwrite").checked,
+        resume: document.getElementById("resume").checked,
+        generate_artifacts: document.getElementById("generate-artifacts").checked
+      };
+    }
+
+    async function refreshDashboard() {
+      const response = await fetch("/api/status", { cache: "no-store" });
+      const data = await response.json();
+      renderProject(data.project);
+      renderJob(data.job);
+      renderSummary(data.artifacts.summary);
+      renderArtifactLinks(data.artifacts.files);
+      renderLeaderboard(data.artifacts.leaderboard);
+      renderFigure("overall-figure", data.artifacts.files.overall_asr_svg, "Overall ASR chart");
+      renderFigure("heatmap-figure", data.artifacts.files.category_heatmap_svg, "Per-category heatmap");
+    }
+
+    document.getElementById("run-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const payload = collectRunPayload();
+        await postJson("/api/run-benchmark", payload);
+        setFlash("Benchmark job started.");
+        refreshDashboard();
+      } catch (error) {
+        setFlash(error.message, true);
+      }
+    });
+
+    document.getElementById("demo-button").addEventListener("click", async () => {
+      try {
+        await postJson("/api/demo");
+        setFlash("Mock demo started.");
+        refreshDashboard();
+      } catch (error) {
+        setFlash(error.message, true);
+      }
+    });
+
+    document.getElementById("artifacts-button").addEventListener("click", async () => {
+      try {
+        await postJson("/api/generate-artifacts");
+        setFlash("Artifact generation started.");
+        refreshDashboard();
+      } catch (error) {
+        setFlash(error.message, true);
+      }
+    });
+
+    document.getElementById("refresh-button").addEventListener("click", () => {
+      refreshDashboard().catch((error) => setFlash(error.message, true));
+    });
+
+    refreshDashboard().catch((error) => setFlash(error.message, true));
+    window.setInterval(() => {
+      refreshDashboard().catch(() => {});
+    }, 2000);
+  </script>
+</body>
+</html>

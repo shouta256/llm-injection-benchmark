@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="420" viewBox="0 0 1020 420">
+<rect width="100%" height="100%" fill="#fffdf7"/>
+<text x="40" y="40" font-family="Helvetica, Arial, sans-serif" font-size="24" fill="#1f2933">Per-Category ASR Heatmap</text>
+<text x="40" y="62" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#52606d">Green cells indicate lower attack success. Red cells indicate weaker resistance.</text>
+<text x="255.0" y="74" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#334e68">Direct Override</text>
+<text x="405.0" y="74" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#334e68">Roleplay / Framing</text>
+<text x="555.0" y="74" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#334e68">Obfuscation</text>
+<text x="705.0" y="74" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#334e68">Data Exfiltration</text>
+<text x="855.0" y="74" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#334e68">Indirect Injection</text>
+<text x="166" y="129.0" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#102a43">llama3.1-8b</text>
+<rect x="180" y="90" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="251.0" y="128" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="330" y="90" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="401.0" y="128" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="480" y="90" width="142" height="62" rx="8" fill="rgb(64,116,85)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="551.0" y="128" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">18.18%</text>
+<rect x="630" y="90" width="142" height="62" rx="8" fill="rgb(64,116,85)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="701.0" y="128" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">18.18%</text>
+<rect x="780" y="90" width="142" height="62" rx="8" fill="rgb(64,116,85)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="851.0" y="128" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">18.18%</text>
+<text x="166" y="199.0" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#102a43">mistral-7b</text>
+<rect x="180" y="160" width="142" height="62" rx="8" fill="rgb(31,127,90)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="251.0" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">0.00%</text>
+<rect x="330" y="160" width="142" height="62" rx="8" fill="rgb(80,111,83)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="401.0" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">27.27%</text>
+<rect x="480" y="160" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="551.0" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="630" y="160" width="142" height="62" rx="8" fill="rgb(97,105,80)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="701.0" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">36.36%</text>
+<rect x="780" y="160" width="142" height="62" rx="8" fill="rgb(80,111,83)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="851.0" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">27.27%</text>
+<text x="166" y="269.0" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#102a43">qwen2.5-7b</text>
+<rect x="180" y="230" width="142" height="62" rx="8" fill="rgb(97,105,80)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="251.0" y="268" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">36.36%</text>
+<rect x="330" y="230" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="401.0" y="268" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="480" y="230" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="551.0" y="268" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="630" y="230" width="142" height="62" rx="8" fill="rgb(47,121,87)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="701.0" y="268" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">9.09%</text>
+<rect x="780" y="230" width="142" height="62" rx="8" fill="rgb(64,116,85)" stroke="#f0f4f8" stroke-width="1"/>
+<text x="851.0" y="268" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff">18.18%</text>
+</svg>
