@@ -9,6 +9,8 @@ A reproducible local benchmark for comparing prompt injection resistance across 
 - `scripts/generate_artifacts.py`: leaderboard, metrics, figures, and report generation
 - `scripts/demo.py`: one-command mock demo that generates all deliverables without external dependencies
 - `scripts/ui.py`: local browser dashboard for running the benchmark and viewing outputs
+- `scripts/run_mac_lite.py`: low-load macOS runner for one small local Ollama model
+- `scripts/run_mac_full.py`: full macOS runner for one throttled local Ollama model
 - `results/results.csv`: raw per-prompt evaluation results
 - `results/leaderboard.csv`: ranked model leaderboard
 - `results/category_metrics.csv`: per-category ASR table
@@ -86,6 +88,69 @@ The demo command regenerates:
 - `report/report.md`
 - `report/report.pdf`
 
+## Low-Load Mac Run
+
+If you want to take results on a Mac without stressing the machine too much, use one small local Ollama model and a reduced prompt subset.
+
+1. Install Ollama on the Mac.
+2. Pull any lightweight instruct model tag you want to use locally.
+3. Run the low-load wrapper:
+
+```bash
+python3 scripts/run_mac_lite.py --model <your_local_ollama_tag>
+```
+
+Default behavior:
+
+- runs only `3` prompts per category
+- uses only `1` model
+- waits `1.5` seconds between requests
+- writes separate outputs so your main benchmark files stay untouched
+
+Default output paths:
+
+- `results/mac_lite_results.csv`
+- `results/mac_lite_leaderboard.csv`
+- `results/mac_lite_category_metrics.csv`
+- `figures/mac_lite/`
+- `report/mac_lite/`
+
+If you want it even lighter:
+
+```bash
+python3 scripts/run_mac_lite.py --model <your_local_ollama_tag> --per-category-limit 2 --delay-seconds 2.5
+```
+
+## Proper Mac Full Run
+
+If you want a proper benchmark result on a Mac only, run the full 55-prompt suite with one local model and throttling.
+
+```bash
+python3 scripts/run_mac_full.py --model <your_local_ollama_tag>
+```
+
+Default behavior:
+
+- runs the full prompt set across all 5 categories
+- uses only `1` local model
+- waits `2.0` seconds between requests
+- writes separate full-run outputs so they do not overwrite the main shared benchmark files
+- supports `--resume` for long runs or interrupted runs
+
+Default output paths:
+
+- `results/mac_full_results.csv`
+- `results/mac_full_leaderboard.csv`
+- `results/mac_full_category_metrics.csv`
+- `figures/mac_full/`
+- `report/mac_full/`
+
+If the Mac is still under load, make it slower:
+
+```bash
+python3 scripts/run_mac_full.py --model <your_local_ollama_tag> --delay-seconds 3.5
+```
+
 ## Run Against Real Local Models
 
 1. Install the model tags you want to evaluate in Ollama.
@@ -130,6 +195,12 @@ Override the benchmark secret:
 
 ```bash
 python3 scripts/run_benchmark.py --backend mock --secret "FLAG{CUSTOM_SECRET}" --overwrite
+```
+
+Run a low-load benchmark with manual throttling:
+
+```bash
+python3 scripts/run_benchmark.py --backend ollama --models <your_local_ollama_tag> --per-category-limit 3 --delay-seconds 1.5 --output results/manual_lite_results.csv --overwrite
 ```
 
 ## Output Schema
