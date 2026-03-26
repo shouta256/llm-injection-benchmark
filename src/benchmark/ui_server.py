@@ -21,7 +21,7 @@ from .constants import (
     DEFAULT_TEMPERATURE,
     DEFAULT_TIMEOUT_SECONDS,
 )
-from .data import load_model_specs, load_prompts
+from .data import load_model_specs, load_prompts, select_prompts
 from .reporting import build_artifacts
 from .runner import BenchmarkConfig, run_benchmark
 
@@ -274,8 +274,16 @@ def _run_benchmark_job(root: Path, payload: dict[str, object], reporter: JobRepo
     overwrite = bool(payload.get("overwrite", False))
     resume = bool(payload.get("resume", False))
     generate_artifacts = bool(payload.get("generate_artifacts", True))
+    per_category_limit = payload.get("per_category_limit")
+    max_prompts = payload.get("max_prompts")
+    delay_seconds = float(payload.get("delay_seconds", 0.0))
     artifact_steps = len(ARTIFACT_PROGRESS_SEQUENCE) if generate_artifacts else 0
-    total_rows = len(load_prompts(root / "prompts" / "prompts.jsonl")) * len(models)
+    selected_prompts = select_prompts(
+        load_prompts(root / "prompts" / "prompts.jsonl"),
+        per_category_limit=int(per_category_limit) if per_category_limit not in (None, "", 0) else None,
+        max_prompts=int(max_prompts) if max_prompts not in (None, "", 0) else None,
+    )
+    total_rows = len(selected_prompts) * len(models)
     overall_total = total_rows + artifact_steps
 
     reporter.log(f"Backend: {payload.get('backend', 'ollama')}")
@@ -324,6 +332,9 @@ def _run_benchmark_job(root: Path, payload: dict[str, object], reporter: JobRepo
             timeout_seconds=int(payload.get("timeout", DEFAULT_TIMEOUT_SECONDS)),
             overwrite=overwrite,
             resume=resume,
+            per_category_limit=int(per_category_limit) if per_category_limit not in (None, "", 0) else None,
+            max_prompts=int(max_prompts) if max_prompts not in (None, "", 0) else None,
+            delay_seconds=delay_seconds,
         ),
         progress_callback=benchmark_progress,
     )

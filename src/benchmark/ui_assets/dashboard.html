@@ -667,6 +667,17 @@
               </div>
             </div>
 
+            <div class="split">
+              <div class="field">
+                <label for="per-category-limit">Per-category limit</label>
+                <input id="per-category-limit" name="per-category-limit" type="number" step="1" min="1" placeholder="blank = all">
+              </div>
+              <div class="field">
+                <label for="delay-seconds">Delay seconds</label>
+                <input id="delay-seconds" name="delay-seconds" type="number" step="0.1" min="0" placeholder="0">
+              </div>
+            </div>
+
             <div class="checks">
               <label class="check"><input type="checkbox" id="overwrite"> Overwrite `results.csv`</label>
               <label class="check"><input type="checkbox" id="resume"> Resume existing rows</label>
@@ -1027,6 +1038,8 @@
         secret: document.getElementById("secret").value.trim(),
         temperature: Number(document.getElementById("temperature").value || 0),
         timeout: Number(document.getElementById("timeout").value || 120),
+        per_category_limit: document.getElementById("per-category-limit").value.trim(),
+        delay_seconds: Number(document.getElementById("delay-seconds").value || 0),
         models: getSelectedModels(),
         overwrite: document.getElementById("overwrite").checked,
         resume: document.getElementById("resume").checked,

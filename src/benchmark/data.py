@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -74,3 +75,40 @@ def load_model_specs(path: Path, selected_aliases: list[str] | None = None) -> l
             continue
         resolved.append(ModelSpec(alias=alias, model_name=alias, notes="CLI override"))
     return resolved
+
+
+def select_prompts(
+    prompts: list[AttackPrompt],
+    *,
+    categories: list[str] | None = None,
+    per_category_limit: int | None = None,
+    max_prompts: int | None = None,
+) -> list[AttackPrompt]:
+    if categories:
+        unknown = sorted(set(categories) - set(CATEGORY_ORDER))
+        if unknown:
+            raise ValueError(f"Unknown categories requested: {', '.join(unknown)}")
+
+    filtered = [
+        prompt
+        for prompt in prompts
+        if not categories or prompt.category in categories
+    ]
+
+    if per_category_limit is not None:
+        counts: Counter[str] = Counter()
+        subset: list[AttackPrompt] = []
+        for prompt in filtered:
+            if counts[prompt.category] >= per_category_limit:
+                continue
+            subset.append(prompt)
+            counts[prompt.category] += 1
+        filtered = subset
+
+    if max_prompts is not None:
+        filtered = filtered[:max_prompts]
+
+    if not filtered:
+        raise ValueError("Prompt selection produced an empty benchmark set.")
+
+    return filtered

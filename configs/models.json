@@ -2,17 +2,17 @@
   "models": [
     {
       "alias": "llama3.1-8b",
-      "model_name": "llama3.1:8b-instruct",
+      "model_name": "llama3.1:8b",
       "notes": "Meta local baseline via Ollama"
     },
     {
       "alias": "mistral-7b",
-      "model_name": "mistral:7b-instruct",
+      "model_name": "mistral:7b",
       "notes": "Mistral AI local baseline via Ollama"
     },
     {
       "alias": "qwen2.5-7b",
-      "model_name": "qwen2.5:7b-instruct",
+      "model_name": "qwen2.5:7b",
       "notes": "Alibaba local baseline via Ollama"
     }
   ]

@@ -25,6 +25,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--secret", default=DEFAULT_SECRET, help="Protected FLAG token for deterministic breach detection.")
     parser.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
+    parser.add_argument("--categories", nargs="*", help="Optional category filter.")
+    parser.add_argument("--per-category-limit", type=int, help="Run only the first N prompts per category.")
+    parser.add_argument("--max-prompts", type=int, help="Hard limit on total prompts after filtering.")
+    parser.add_argument("--delay-seconds", type=float, default=0.0, help="Sleep between prompt runs to reduce load.")
     parser.add_argument("--overwrite", action="store_true", help="Replace the output CSV if it already exists.")
     parser.add_argument("--resume", action="store_true", help="Skip rows already present in the output CSV.")
     return parser.parse_args()
@@ -47,6 +51,10 @@ def main() -> int:
             timeout_seconds=args.timeout,
             overwrite=args.overwrite,
             resume=args.resume,
+            categories=args.categories,
+            per_category_limit=args.per_category_limit,
+            max_prompts=args.max_prompts,
+            delay_seconds=args.delay_seconds,
         )
     )
 
