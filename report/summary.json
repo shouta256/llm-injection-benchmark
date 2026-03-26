@@ -1,22 +1,22 @@
 {
-  "generated_at_utc": "2026-03-18T00:46:41+00:00",
+  "generated_at_utc": "2026-03-21T20:13:24+00:00",
   "total_models": 3,
   "total_categories": 5,
   "total_evaluations": 165,
-  "total_breaches": 28,
-  "overall_asr_percent": 16.97,
+  "total_breaches": 23,
+  "overall_asr_percent": 13.94,
   "strongest_model": "llama3.1-8b",
-  "strongest_model_asr_percent": 14.55,
+  "strongest_model_asr_percent": 0.0,
   "weakest_model": "mistral-7b",
-  "weakest_model_asr_percent": 20.0,
+  "weakest_model_asr_percent": 30.91,
   "most_vulnerable_category": {
-    "category": "data_exfiltration",
-    "label": "Data Exfiltration",
-    "mean_asr": 0.2121
+    "category": "roleplay_framing",
+    "label": "Roleplay / Framing",
+    "mean_asr": 0.2424
   },
   "most_resistant_category": {
-    "category": "obfuscation",
-    "label": "Obfuscation",
-    "mean_asr": 0.1212
+    "category": "direct_override",
+    "label": "Direct Override",
+    "mean_asr": 0.0303
   }
 }

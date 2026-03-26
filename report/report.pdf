@@ -3,7 +3,7 @@
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Length 1853 >>
+<< /Length 1852 >>
 stream
 BT
 /F1 11 Tf
@@ -13,7 +13,7 @@ BT
 T*
 () Tj
 T*
-(Generated UTC: 2026-03-18T00:46:41+00:00) Tj
+(Generated UTC: 2026-03-21T20:13:24+00:00) Tj
 T*
 (Models evaluated: 3) Tj
 T*
@@ -21,19 +21,19 @@ T*
 T*
 (Total prompt-model evaluations: 165) Tj
 T*
-(Total breaches: 28) Tj
+(Total breaches: 23) Tj
 T*
-(Aggregate ASR: 16.97%) Tj
+(Aggregate ASR: 13.94%) Tj
 T*
 () Tj
 T*
-(Most resistant model: llama3.1-8b \(14.55% ASR\)) Tj
+(Most resistant model: llama3.1-8b \(0.00% ASR\)) Tj
 T*
-(Least resistant model: mistral-7b \(20.00% ASR\)) Tj
+(Least resistant model: mistral-7b \(30.91% ASR\)) Tj
 T*
-(Most vulnerable category: Data Exfiltration \(21.21% mean ASR\)) Tj
+(Most vulnerable category: Roleplay / Framing \(24.24% mean ASR\)) Tj
 T*
-(Most resistant category: Obfuscation \(12.12% mean ASR\)) Tj
+(Most resistant category: Direct Override \(3.03% mean ASR\)) Tj
 T*
 () Tj
 T*
@@ -49,45 +49,45 @@ T*
 T*
 (Leaderboard) Tj
 T*
-(Rank 1: llama3.1-8b | ASR 14.55% | Breaches 8/55) Tj
+(Rank 1: llama3.1-8b | ASR 0.00% | Breaches 0/55) Tj
 T*
-(Rank 2: qwen2.5-7b | ASR 16.36% | Breaches 9/55) Tj
+(Rank 2: qwen2.5-7b | ASR 10.91% | Breaches 6/55) Tj
 T*
-(Rank 3: mistral-7b | ASR 20.00% | Breaches 11/55) Tj
+(Rank 3: mistral-7b | ASR 30.91% | Breaches 17/55) Tj
 T*
 () Tj
 T*
 (Per-Category ASR) Tj
 T*
-(llama3.1-8b | Direct Override | 9.09% ASR) Tj
+(llama3.1-8b | Direct Override | 0.00% ASR) Tj
 T*
-(llama3.1-8b | Roleplay / Framing | 9.09% ASR) Tj
+(llama3.1-8b | Roleplay / Framing | 0.00% ASR) Tj
 T*
-(llama3.1-8b | Obfuscation | 18.18% ASR) Tj
+(llama3.1-8b | Obfuscation | 0.00% ASR) Tj
 T*
-(llama3.1-8b | Data Exfiltration | 18.18% ASR) Tj
+(llama3.1-8b | Data Exfiltration | 0.00% ASR) Tj
 T*
-(llama3.1-8b | Indirect Injection | 18.18% ASR) Tj
+(llama3.1-8b | Indirect Injection | 0.00% ASR) Tj
 T*
-(mistral-7b | Direct Override | 0.00% ASR) Tj
+(mistral-7b | Direct Override | 9.09% ASR) Tj
 T*
-(mistral-7b | Roleplay / Framing | 27.27% ASR) Tj
+(mistral-7b | Roleplay / Framing | 54.55% ASR) Tj
 T*
-(mistral-7b | Obfuscation | 9.09% ASR) Tj
+(mistral-7b | Obfuscation | 45.45% ASR) Tj
 T*
 (mistral-7b | Data Exfiltration | 36.36% ASR) Tj
 T*
-(mistral-7b | Indirect Injection | 27.27% ASR) Tj
+(mistral-7b | Indirect Injection | 9.09% ASR) Tj
 T*
-(qwen2.5-7b | Direct Override | 36.36% ASR) Tj
+(qwen2.5-7b | Direct Override | 0.00% ASR) Tj
 T*
-(qwen2.5-7b | Roleplay / Framing | 9.09% ASR) Tj
+(qwen2.5-7b | Roleplay / Framing | 18.18% ASR) Tj
 T*
-(qwen2.5-7b | Obfuscation | 9.09% ASR) Tj
+(qwen2.5-7b | Obfuscation | 0.00% ASR) Tj
 T*
-(qwen2.5-7b | Data Exfiltration | 9.09% ASR) Tj
+(qwen2.5-7b | Data Exfiltration | 27.27% ASR) Tj
 T*
-(qwen2.5-7b | Indirect Injection | 18.18% ASR) Tj
+(qwen2.5-7b | Indirect Injection | 9.09% ASR) Tj
 T*
 () Tj
 T*
@@ -113,11 +113,11 @@ xref
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
-0000001984 00000 n 
-0000002043 00000 n 
-0000002169 00000 n 
+0000001983 00000 n 
+0000002042 00000 n 
+0000002168 00000 n 
 trailer
 << /Size 6 /Root 5 0 R >>
 startxref
-2218
+2217
 %%EOF

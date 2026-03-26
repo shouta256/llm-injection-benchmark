@@ -1,18 +1,18 @@
 # LLM Prompt Injection Benchmark Report
 
-Generated: 2026-03-18T00:46:41+00:00
+Generated: 2026-03-21T20:13:24+00:00
 
 ## Executive Summary
 
 - Models evaluated: 3
 - Categories evaluated: 5
 - Total prompt-model evaluations: 165
-- Total breaches: 28
-- Aggregate ASR: 16.97%
-- Most resistant model: llama3.1-8b (14.55% ASR)
-- Least resistant model: mistral-7b (20.00% ASR)
-- Most vulnerable category: Data Exfiltration (21.21% mean ASR)
-- Most resistant category: Obfuscation (12.12% mean ASR)
+- Total breaches: 23
+- Aggregate ASR: 13.94%
+- Most resistant model: llama3.1-8b (0.00% ASR)
+- Least resistant model: mistral-7b (30.91% ASR)
+- Most vulnerable category: Roleplay / Framing (24.24% mean ASR)
+- Most resistant category: Direct Override (3.03% mean ASR)
 
 ## Method
 
@@ -24,29 +24,29 @@ All runs record model alias, model name, prompt id, category, temperature, backe
 
 | Rank | Model | Breaches | Total | ASR | Worst Category ASR |
 | --- | --- | ---: | ---: | ---: | ---: |
-| 1 | llama3.1-8b | 8 | 55 | 14.55% | 18.18% |
-| 2 | qwen2.5-7b | 9 | 55 | 16.36% | 36.36% |
-| 3 | mistral-7b | 11 | 55 | 20.00% | 36.36% |
+| 1 | llama3.1-8b | 0 | 55 | 0.00% | 0.00% |
+| 2 | qwen2.5-7b | 6 | 55 | 10.91% | 27.27% |
+| 3 | mistral-7b | 17 | 55 | 30.91% | 54.55% |
 
 ## Per-Category ASR
 
 | Model | Category | Breaches | Total | ASR |
 | --- | --- | ---: | ---: | ---: |
-| llama3.1-8b | Direct Override | 1 | 11 | 9.09% |
-| llama3.1-8b | Roleplay / Framing | 1 | 11 | 9.09% |
-| llama3.1-8b | Obfuscation | 2 | 11 | 18.18% |
-| llama3.1-8b | Data Exfiltration | 2 | 11 | 18.18% |
-| llama3.1-8b | Indirect Injection | 2 | 11 | 18.18% |
-| mistral-7b | Direct Override | 0 | 11 | 0.00% |
-| mistral-7b | Roleplay / Framing | 3 | 11 | 27.27% |
-| mistral-7b | Obfuscation | 1 | 11 | 9.09% |
+| llama3.1-8b | Direct Override | 0 | 11 | 0.00% |
+| llama3.1-8b | Roleplay / Framing | 0 | 11 | 0.00% |
+| llama3.1-8b | Obfuscation | 0 | 11 | 0.00% |
+| llama3.1-8b | Data Exfiltration | 0 | 11 | 0.00% |
+| llama3.1-8b | Indirect Injection | 0 | 11 | 0.00% |
+| mistral-7b | Direct Override | 1 | 11 | 9.09% |
+| mistral-7b | Roleplay / Framing | 6 | 11 | 54.55% |
+| mistral-7b | Obfuscation | 5 | 11 | 45.45% |
 | mistral-7b | Data Exfiltration | 4 | 11 | 36.36% |
-| mistral-7b | Indirect Injection | 3 | 11 | 27.27% |
-| qwen2.5-7b | Direct Override | 4 | 11 | 36.36% |
-| qwen2.5-7b | Roleplay / Framing | 1 | 11 | 9.09% |
-| qwen2.5-7b | Obfuscation | 1 | 11 | 9.09% |
-| qwen2.5-7b | Data Exfiltration | 1 | 11 | 9.09% |
-| qwen2.5-7b | Indirect Injection | 2 | 11 | 18.18% |
+| mistral-7b | Indirect Injection | 1 | 11 | 9.09% |
+| qwen2.5-7b | Direct Override | 0 | 11 | 0.00% |
+| qwen2.5-7b | Roleplay / Framing | 2 | 11 | 18.18% |
+| qwen2.5-7b | Obfuscation | 0 | 11 | 0.00% |
+| qwen2.5-7b | Data Exfiltration | 3 | 11 | 27.27% |
+| qwen2.5-7b | Indirect Injection | 1 | 11 | 9.09% |
 
 ## Figures
 
