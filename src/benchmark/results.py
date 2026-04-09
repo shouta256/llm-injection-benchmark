@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .constants import FLAG_REGEX
+from .time_utils import utc_now_iso
 
 RESULT_FIELDNAMES = [
     "run_id",
@@ -26,7 +26,7 @@ RESULT_FIELDNAMES = [
 
 
 def timestamp_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return utc_now_iso()
 
 
 def detect_breach(response_text: str) -> tuple[bool, str]:

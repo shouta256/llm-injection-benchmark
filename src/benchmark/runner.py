@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Callable
 
 from .backends import create_backend
 from .constants import DEFAULT_TEMPERATURE, DEFAULT_TIMEOUT_SECONDS, hash_secret, render_system_prompt
-from .data import ModelSpec, load_prompts, select_prompts
+from .data import AttackPrompt, ModelSpec, load_prompts, select_prompts
 from .results import append_result, detect_breach, load_existing_result_keys, timestamp_utc
 
 
@@ -26,6 +26,7 @@ class BenchmarkConfig:
     per_category_limit: int | None = None
     max_prompts: int | None = None
     delay_seconds: float = 0.0
+    selected_prompts: list[AttackPrompt] | None = None
 
 
 def _emit_progress(
@@ -43,12 +44,16 @@ def run_benchmark(
     if config.output_path.exists() and config.overwrite and not config.resume:
         config.output_path.unlink()
 
-    attack_prompts = select_prompts(
-        load_prompts(config.prompts_path),
-        categories=config.categories,
-        per_category_limit=config.per_category_limit,
-        max_prompts=config.max_prompts,
-    )
+    attack_prompts = config.selected_prompts
+    if attack_prompts is None:
+        attack_prompts = select_prompts(
+            load_prompts(config.prompts_path),
+            categories=config.categories,
+            per_category_limit=config.per_category_limit,
+            max_prompts=config.max_prompts,
+        )
+    if not attack_prompts:
+        raise ValueError("Prompt selection produced an empty benchmark set.")
     backend = create_backend(config.backend_name, secret=config.secret, timeout_seconds=config.timeout_seconds)
     system_prompt = render_system_prompt(config.secret)
     secret_sha256 = hash_secret(config.secret)

@@ -1,292 +1,70 @@
 from __future__ import annotations
 
-import copy
-import csv
 import json
 import mimetypes
-import threading
-import traceback
-import uuid
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from .constants import (
-    CATEGORY_LABELS,
-    CATEGORY_ORDER,
-    DEFAULT_SECRET,
-    DEFAULT_TEMPERATURE,
-    DEFAULT_TIMEOUT_SECONDS,
-)
+from .artifacts import ArtifactPaths
+from .constants import DEFAULT_SECRET, DEFAULT_TEMPERATURE, DEFAULT_TIMEOUT_SECONDS
 from .data import load_model_specs, load_prompts, select_prompts
 from .reporting import build_artifacts
 from .runner import BenchmarkConfig, run_benchmark
+from .ui_data import ARTIFACT_PROGRESS_SEQUENCE, artifact_step_index, build_dashboard_payload, safe_artifact_path
+from .ui_jobs import JobManager, JobReporter
 
 UI_ASSET_PATH = Path(__file__).resolve().parent / "ui_assets" / "dashboard.html"
-ALLOWED_ARTIFACT_DIRECTORIES = ("results", "figures", "report", "prompts", "configs")
-ARTIFACT_PROGRESS_SEQUENCE = [
-    "load_results",
-    "aggregate",
-    "leaderboard",
-    "category_metrics",
-    "overall_chart",
-    "heatmap",
-    "report_markdown",
-    "report_pdf",
-    "summary_json",
-]
 
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-@dataclass
-class JobReporter:
-    manager: "JobManager"
-    job_id: str
-
-    def log(self, message: str) -> None:
-        self.manager.append_log(self.job_id, message)
-
-    def set_progress(self, processed: int, total: int, message: str | None = None) -> None:
-        self.manager.update_progress(self.job_id, processed, total, message)
-
-    def set_message(self, message: str) -> None:
-        self.manager.update_message(self.job_id, message)
-
-
-class JobManager:
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._state = self._build_idle_state()
-
-    def _build_idle_state(self) -> dict[str, object]:
-        return {
-            "id": "",
-            "kind": "",
-            "label": "No active job",
-            "status": "idle",
-            "message": "Ready",
-            "started_at": "",
-            "finished_at": "",
-            "processed": 0,
-            "total": 0,
-            "logs": [],
-            "error": "",
-            "result": {},
-        }
-
-    def snapshot(self) -> dict[str, object]:
-        with self._lock:
-            return copy.deepcopy(self._state)
-
-    def start_job(
-        self,
-        *,
-        kind: str,
-        label: str,
-        target,
-    ) -> tuple[bool, dict[str, object] | str]:
-        with self._lock:
-            if self._state["status"] == "running":
-                return False, "Another job is already running."
-
-            job_id = uuid.uuid4().hex[:12]
-            self._state = {
-                "id": job_id,
-                "kind": kind,
-                "label": label,
-                "status": "running",
-                "message": f"{label} started",
-                "started_at": utc_now_iso(),
-                "finished_at": "",
-                "processed": 0,
-                "total": 0,
-                "logs": [f"{utc_now_iso()}  {label} started"],
-                "error": "",
-                "result": {},
-            }
-
-        thread = threading.Thread(
-            target=self._run_job,
-            args=(job_id, label, target),
-            daemon=True,
-        )
-        thread.start()
-        return True, self.snapshot()
-
-    def _run_job(self, job_id: str, label: str, target) -> None:
-        reporter = JobReporter(manager=self, job_id=job_id)
-        try:
-            result = target(reporter) or {}
-            self._finish(job_id, status="succeeded", message=f"{label} completed", result=result)
-        except Exception as exc:  # pragma: no cover - exercised via manual UI flow
-            reporter.log(traceback.format_exc().strip())
-            self._finish(job_id, status="failed", message=f"{label} failed", error=str(exc), result={})
-
-    def append_log(self, job_id: str, message: str) -> None:
-        with self._lock:
-            if self._state["id"] != job_id:
-                return
-            logs = list(self._state["logs"])
-            logs.append(f"{utc_now_iso()}  {message}")
-            self._state["logs"] = logs[-80:]
-
-    def update_progress(self, job_id: str, processed: int, total: int, message: str | None = None) -> None:
-        with self._lock:
-            if self._state["id"] != job_id:
-                return
-            self._state["processed"] = max(0, processed)
-            self._state["total"] = max(0, total)
-            if message:
-                self._state["message"] = message
-
-    def update_message(self, job_id: str, message: str) -> None:
-        with self._lock:
-            if self._state["id"] != job_id:
-                return
-            self._state["message"] = message
-
-    def _finish(
-        self,
-        job_id: str,
-        *,
-        status: str,
-        message: str,
-        error: str = "",
-        result: dict[str, object] | None = None,
-    ) -> None:
-        with self._lock:
-            if self._state["id"] != job_id:
-                return
-            self._state["status"] = status
-            self._state["message"] = message
-            self._state["finished_at"] = utc_now_iso()
-            self._state["error"] = error
-            self._state["result"] = result or {}
-            logs = list(self._state["logs"])
-            logs.append(f"{utc_now_iso()}  {message}")
-            if error:
-                logs.append(f"{utc_now_iso()}  Error: {error}")
-            self._state["logs"] = logs[-80:]
-
-
-def _read_csv_rows(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        return []
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
-
-
-def _read_json(path: Path) -> dict[str, object] | None:
-    if not path.exists():
+def _optional_int(value: object) -> int | None:
+    if value in (None, "", 0):
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return int(value)
 
 
-def _file_payload(root: Path, relative_path: str) -> dict[str, object] | None:
-    path = root / relative_path
-    if not path.exists():
-        return None
-    return {
-        "url": f"/artifacts/{relative_path}",
-        "mtime": int(path.stat().st_mtime),
-    }
-
-
-def _prompt_dataset_summary(root: Path) -> dict[str, object]:
-    prompts = load_prompts(root / "prompts" / "prompts.jsonl")
-    category_counts = {category: 0 for category in CATEGORY_ORDER}
-    for prompt in prompts:
-        category_counts[prompt.category] += 1
-    return {
-        "total_prompts": len(prompts),
-        "categories": [
-            {
-                "key": category,
-                "label": CATEGORY_LABELS[category],
-                "count": category_counts[category],
-            }
-            for category in CATEGORY_ORDER
-        ],
-    }
-
-
-def _artifact_bundle(root: Path) -> dict[str, object]:
-    summary = _read_json(root / "report" / "summary.json")
-    leaderboard = _read_csv_rows(root / "results" / "leaderboard.csv")
-    return {
-        "summary": summary,
-        "leaderboard": leaderboard,
-        "files": {
-            "results_csv": _file_payload(root, "results/results.csv"),
-            "leaderboard_csv": _file_payload(root, "results/leaderboard.csv"),
-            "category_metrics_csv": _file_payload(root, "results/category_metrics.csv"),
-            "overall_asr_svg": _file_payload(root, "figures/overall_asr.svg"),
-            "category_heatmap_svg": _file_payload(root, "figures/category_heatmap.svg"),
-            "report_md": _file_payload(root, "report/report.md"),
-            "report_pdf": _file_payload(root, "report/report.pdf"),
-        },
-    }
-
-
-def build_dashboard_payload(root: Path, manager: JobManager) -> dict[str, object]:
-    models = load_model_specs(root / "configs" / "models.json")
-    return {
-        "project": {
-            "root": str(root),
-            "default_secret": DEFAULT_SECRET,
-            "default_temperature": DEFAULT_TEMPERATURE,
-            "default_timeout_seconds": DEFAULT_TIMEOUT_SECONDS,
-            "models": [
-                {
-                    "alias": model.alias,
-                    "model_name": model.model_name,
-                    "notes": model.notes,
-                }
-                for model in models
-            ],
-            "prompt_dataset": _prompt_dataset_summary(root),
-        },
-        "job": manager.snapshot(),
-        "artifacts": _artifact_bundle(root),
-    }
-
-
-def _artifact_step_index(event_name: str) -> int:
-    try:
-        return ARTIFACT_PROGRESS_SEQUENCE.index(event_name) + 1
-    except ValueError:
-        return 0
-
-
-def _run_benchmark_job(root: Path, payload: dict[str, object], reporter: JobReporter) -> dict[str, object]:
+def _run_benchmark_job(
+    root: Path,
+    artifact_paths: ArtifactPaths,
+    payload: dict[str, object],
+    reporter: JobReporter,
+) -> dict[str, object]:
     selected_models = payload.get("models")
-    model_aliases = [str(item) for item in selected_models] if isinstance(selected_models, list) else None
-    models = load_model_specs(root / "configs" / "models.json", model_aliases if model_aliases else None)
+    model_aliases = [str(item) for item in selected_models] if isinstance(selected_models, list) and selected_models else None
+    models = load_model_specs(root / "configs" / "models.json", model_aliases)
     if not models:
         raise ValueError("No models selected.")
 
-    overwrite = bool(payload.get("overwrite", False))
-    resume = bool(payload.get("resume", False))
-    generate_artifacts = bool(payload.get("generate_artifacts", True))
-    per_category_limit = payload.get("per_category_limit")
-    max_prompts = payload.get("max_prompts")
-    delay_seconds = float(payload.get("delay_seconds", 0.0))
-    artifact_steps = len(ARTIFACT_PROGRESS_SEQUENCE) if generate_artifacts else 0
+    per_category_limit = _optional_int(payload.get("per_category_limit"))
+    max_prompts = _optional_int(payload.get("max_prompts"))
     selected_prompts = select_prompts(
         load_prompts(root / "prompts" / "prompts.jsonl"),
-        per_category_limit=int(per_category_limit) if per_category_limit not in (None, "", 0) else None,
-        max_prompts=int(max_prompts) if max_prompts not in (None, "", 0) else None,
+        per_category_limit=per_category_limit,
+        max_prompts=max_prompts,
     )
+    generate_artifacts = bool(payload.get("generate_artifacts", True))
+    config = BenchmarkConfig(
+        backend_name=str(payload.get("backend", "ollama")),
+        models=models,
+        prompts_path=root / "prompts" / "prompts.jsonl",
+        output_path=artifact_paths.results_path,
+        secret=str(payload.get("secret", DEFAULT_SECRET)),
+        temperature=float(payload.get("temperature", DEFAULT_TEMPERATURE)),
+        timeout_seconds=int(payload.get("timeout", DEFAULT_TIMEOUT_SECONDS)),
+        overwrite=bool(payload.get("overwrite", False)),
+        resume=bool(payload.get("resume", False)),
+        per_category_limit=per_category_limit,
+        max_prompts=max_prompts,
+        delay_seconds=float(payload.get("delay_seconds", 0.0)),
+        selected_prompts=selected_prompts,
+    )
+
     total_rows = len(selected_prompts) * len(models)
+    artifact_steps = len(ARTIFACT_PROGRESS_SEQUENCE) if generate_artifacts else 0
     overall_total = total_rows + artifact_steps
 
-    reporter.log(f"Backend: {payload.get('backend', 'ollama')}")
+    reporter.log(f"Backend: {config.backend_name}")
     reporter.log(f"Models: {', '.join(model.alias for model in models)}")
     reporter.set_progress(0, overall_total, "Preparing benchmark run")
 
@@ -307,7 +85,7 @@ def _run_benchmark_job(root: Path, payload: dict[str, object], reporter: JobRepo
 
         if event_name == "skipped":
             reporter.set_progress(processed_rows, overall_total, f"Skipped {model_alias} / {prompt_id}")
-            if processed_rows == overall_total or processed_rows % 10 == 0:
+            if processed_rows == total_rows or processed_rows % 10 == 0:
                 reporter.log(f"Skipped existing row for {model_alias} / {prompt_id}.")
             return
 
@@ -321,84 +99,53 @@ def _run_benchmark_job(root: Path, payload: dict[str, object], reporter: JobRepo
             reporter.set_progress(total_rows, overall_total, "Benchmark rows completed")
             reporter.log("Raw benchmark execution finished.")
 
-    stats = run_benchmark(
-        BenchmarkConfig(
-            backend_name=str(payload.get("backend", "ollama")),
-            models=models,
-            prompts_path=root / "prompts" / "prompts.jsonl",
-            output_path=root / "results" / "results.csv",
-            secret=str(payload.get("secret", DEFAULT_SECRET)),
-            temperature=float(payload.get("temperature", DEFAULT_TEMPERATURE)),
-            timeout_seconds=int(payload.get("timeout", DEFAULT_TIMEOUT_SECONDS)),
-            overwrite=overwrite,
-            resume=resume,
-            per_category_limit=int(per_category_limit) if per_category_limit not in (None, "", 0) else None,
-            max_prompts=int(max_prompts) if max_prompts not in (None, "", 0) else None,
-            delay_seconds=delay_seconds,
-        ),
-        progress_callback=benchmark_progress,
-    )
+    stats = run_benchmark(config, progress_callback=benchmark_progress)
 
     result: dict[str, object] = {"run_stats": stats}
     if generate_artifacts:
         reporter.log("Generating derived artifacts.")
 
         def artifact_progress(event: dict[str, object]) -> None:
-            event_name = str(event.get("event", ""))
-            step_index = _artifact_step_index(event_name)
-            processed = total_rows + step_index
+            step_index = artifact_step_index(str(event.get("event", "")))
             message = str(event.get("message", "Generating artifacts"))
-            reporter.set_progress(processed, overall_total, message)
+            reporter.set_progress(total_rows + step_index, overall_total, message)
             reporter.log(message)
 
-        summary = build_artifacts(
-            results_path=root / "results" / "results.csv",
-            leaderboard_path=root / "results" / "leaderboard.csv",
-            category_metrics_path=root / "results" / "category_metrics.csv",
-            figures_dir=root / "figures",
-            report_dir=root / "report",
-            progress_callback=artifact_progress,
-        )
-        result["summary"] = summary
+        result["summary"] = build_artifacts(artifact_paths, progress_callback=artifact_progress)
     return result
 
 
-def _generate_artifacts_job(root: Path, reporter: JobReporter) -> dict[str, object]:
+def _generate_artifacts_job(artifact_paths: ArtifactPaths, reporter: JobReporter) -> dict[str, object]:
     total_steps = len(ARTIFACT_PROGRESS_SEQUENCE)
     reporter.set_progress(0, total_steps, "Preparing artifact generation")
-    reporter.log("Generating figures and report from the existing results.csv.")
+    reporter.log(f"Generating figures and report from {artifact_paths.results_path.name}.")
 
     def artifact_progress(event: dict[str, object]) -> None:
-        event_name = str(event.get("event", ""))
-        step_index = _artifact_step_index(event_name)
+        step_index = artifact_step_index(str(event.get("event", "")))
         message = str(event.get("message", "Generating artifacts"))
         reporter.set_progress(step_index, total_steps, message)
         reporter.log(message)
 
-    summary = build_artifacts(
-        results_path=root / "results" / "results.csv",
-        leaderboard_path=root / "results" / "leaderboard.csv",
-        category_metrics_path=root / "results" / "category_metrics.csv",
-        figures_dir=root / "figures",
-        report_dir=root / "report",
-        progress_callback=artifact_progress,
-    )
-    return {"summary": summary}
+    return {"summary": build_artifacts(artifact_paths, progress_callback=artifact_progress)}
 
 
-def _run_demo_job(root: Path, reporter: JobReporter) -> dict[str, object]:
-    payload = {
-        "backend": "mock",
-        "models": [],
-        "secret": DEFAULT_SECRET,
-        "temperature": 0.0,
-        "timeout": DEFAULT_TIMEOUT_SECONDS,
-        "overwrite": True,
-        "resume": False,
-        "generate_artifacts": True,
-    }
+def _run_demo_job(root: Path, artifact_paths: ArtifactPaths, reporter: JobReporter) -> dict[str, object]:
     reporter.log("Running deterministic mock demo.")
-    return _run_benchmark_job(root, payload, reporter)
+    return _run_benchmark_job(
+        root,
+        artifact_paths,
+        {
+            "backend": "mock",
+            "models": [],
+            "secret": DEFAULT_SECRET,
+            "temperature": 0.0,
+            "timeout": DEFAULT_TIMEOUT_SECONDS,
+            "overwrite": True,
+            "resume": False,
+            "generate_artifacts": True,
+        },
+        reporter,
+    )
 
 
 def _read_request_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
@@ -411,19 +158,9 @@ def _read_request_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
     return json.loads(body.decode("utf-8"))
 
 
-def _safe_artifact_path(root: Path, relative_path: str) -> Path | None:
-    candidate = (root / relative_path).resolve()
-    if not candidate.exists():
-        return None
-    for directory in ALLOWED_ARTIFACT_DIRECTORIES:
-        allowed_root = (root / directory).resolve()
-        if candidate == allowed_root or allowed_root in candidate.parents:
-            return candidate
-    return None
-
-
 def create_handler(root: Path, manager: JobManager):
     html = UI_ASSET_PATH.read_text(encoding="utf-8")
+    artifact_paths = ArtifactPaths.standard(root)
 
     class DashboardHandler(BaseHTTPRequestHandler):
         server_version = "PromptInjectionUI/1.0"
@@ -437,7 +174,7 @@ def create_handler(root: Path, manager: JobManager):
                 self._send_html(html)
                 return
             if parsed.path == "/api/status":
-                self._send_json(build_dashboard_payload(root, manager))
+                self._send_json(build_dashboard_payload(root, manager, artifact_paths))
                 return
             if parsed.path == "/favicon.ico":
                 self.send_response(HTTPStatus.NO_CONTENT)
@@ -460,7 +197,7 @@ def create_handler(root: Path, manager: JobManager):
                 ok, result = manager.start_job(
                     kind="benchmark",
                     label="Benchmark Run",
-                    target=lambda reporter: _run_benchmark_job(root, payload, reporter),
+                    target=lambda reporter: _run_benchmark_job(root, artifact_paths, payload, reporter),
                 )
                 self._send_job_response(ok, result)
                 return
@@ -469,7 +206,7 @@ def create_handler(root: Path, manager: JobManager):
                 ok, result = manager.start_job(
                     kind="artifacts",
                     label="Artifact Generation",
-                    target=lambda reporter: _generate_artifacts_job(root, reporter),
+                    target=lambda reporter: _generate_artifacts_job(artifact_paths, reporter),
                 )
                 self._send_job_response(ok, result)
                 return
@@ -478,7 +215,7 @@ def create_handler(root: Path, manager: JobManager):
                 ok, result = manager.start_job(
                     kind="demo",
                     label="Mock Demo",
-                    target=lambda reporter: _run_demo_job(root, reporter),
+                    target=lambda reporter: _run_demo_job(root, artifact_paths, reporter),
                 )
                 self._send_job_response(ok, result)
                 return
@@ -492,7 +229,7 @@ def create_handler(root: Path, manager: JobManager):
             self._send_json({"ok": False, "error": result}, status=HTTPStatus.CONFLICT)
 
         def _serve_artifact(self, relative_path: str) -> None:
-            artifact_path = _safe_artifact_path(root, relative_path)
+            artifact_path = safe_artifact_path(root, relative_path)
             if artifact_path is None:
                 self._send_json({"error": "Artifact not found"}, status=HTTPStatus.NOT_FOUND)
                 return

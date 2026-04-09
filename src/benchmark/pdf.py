@@ -9,6 +9,31 @@ def _escape_pdf_text(value: str) -> str:
 
 
 def write_simple_pdf(path: Path, lines: list[str]) -> None:
+    pages = _paginate_lines(lines)
+    font_object_id = 1
+    content_object_ids = [font_object_id + index + 1 for index in range(len(pages))]
+    page_object_ids = [
+        content_object_ids[-1] + index + 1
+        for index in range(len(pages))
+    ]
+    pages_object_id = page_object_ids[-1] + 1 if page_object_ids else 2
+    catalog_object_id = pages_object_id + 1
+
+    objects = [b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    objects.extend(_content_stream_object(page_lines) for page_lines in pages)
+    objects.extend(
+        _page_object(content_object_id, pages_object_id, font_object_id)
+        for content_object_id in content_object_ids
+    )
+    objects.append(_pages_object(page_object_ids))
+    objects.append(f"<< /Type /Catalog /Pages {pages_object_id} 0 R >>".encode("latin-1"))
+
+    pdf = _assemble_pdf(objects, catalog_object_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(pdf)
+
+
+def _paginate_lines(lines: list[str]) -> list[list[str]]:
     wrapped_lines: list[str] = []
     for line in lines:
         normalized = line.rstrip()
@@ -17,62 +42,41 @@ def write_simple_pdf(path: Path, lines: list[str]) -> None:
             continue
         wrapped_lines.extend(textwrap.wrap(normalized, width=92) or [""])
 
+    if not wrapped_lines:
+        wrapped_lines = ["Empty report."]
+
     lines_per_page = 46
-    pages = [
+    return [
         wrapped_lines[index : index + lines_per_page]
         for index in range(0, len(wrapped_lines), lines_per_page)
     ]
-    if not pages:
-        pages = [["Empty report."]]
 
-    objects: list[bytes] = []
 
-    def add_object(data: bytes) -> int:
-        objects.append(data)
-        return len(objects)
+def _content_stream_object(page_lines: list[str]) -> bytes:
+    text_lines = ["BT", "/F1 11 Tf", "50 760 Td", "14 TL"]
+    for index, line in enumerate(page_lines):
+        if index:
+            text_lines.append("T*")
+        text_lines.append(f"({_escape_pdf_text(line)}) Tj")
+    text_lines.append("ET")
+    stream = "\n".join(text_lines).encode("latin-1", errors="replace")
+    return f"<< /Length {len(stream)} >>\nstream\n".encode("latin-1") + stream + b"\nendstream"
 
-    font_object_id = add_object(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
-    page_object_ids: list[int] = []
-    content_object_ids: list[int] = []
 
-    for page_lines in pages:
-        text_lines = ["BT", "/F1 11 Tf", "50 760 Td", "14 TL"]
-        for index, line in enumerate(page_lines):
-            escaped = _escape_pdf_text(line)
-            if index == 0:
-                text_lines.append(f"({escaped}) Tj")
-            else:
-                text_lines.append("T*")
-                text_lines.append(f"({escaped}) Tj")
-        text_lines.append("ET")
-        stream = "\n".join(text_lines).encode("latin-1", errors="replace")
-        content_object_id = add_object(
-            f"<< /Length {len(stream)} >>\nstream\n".encode("latin-1") + stream + b"\nendstream"
-        )
-        content_object_ids.append(content_object_id)
-        page_object_ids.append(0)
+def _page_object(content_object_id: int, pages_object_id: int, font_object_id: int) -> bytes:
+    return (
+        f"<< /Type /Page /Parent {pages_object_id} 0 R /MediaBox [0 0 612 792] "
+        f"/Resources << /Font << /F1 {font_object_id} 0 R >> >> "
+        f"/Contents {content_object_id} 0 R >>"
+    ).encode("latin-1")
 
-    pages_kids_placeholder = " ".join(f"{index} 0 R" for index in range(1, len(pages) + 1))
-    pages_object_id = add_object(
-        f"<< /Type /Pages /Count {len(pages)} /Kids [ {pages_kids_placeholder} ] >>".encode("latin-1")
-    )
 
-    page_object_ids.clear()
-    for content_object_id in content_object_ids:
-        page_object_id = add_object(
-            f"<< /Type /Page /Parent {pages_object_id} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 {font_object_id} 0 R >> >> /Contents {content_object_id} 0 R >>".encode(
-                "latin-1"
-            )
-        )
-        page_object_ids.append(page_object_id)
+def _pages_object(page_object_ids: list[int]) -> bytes:
+    kids = " ".join(f"{page_object_id} 0 R" for page_object_id in page_object_ids)
+    return f"<< /Type /Pages /Count {len(page_object_ids)} /Kids [ {kids} ] >>".encode("latin-1")
 
-    objects[pages_object_id - 1] = (
-        f"<< /Type /Pages /Count {len(page_object_ids)} /Kids [ {' '.join(f'{page_id} 0 R' for page_id in page_object_ids)} ] >>".encode(
-            "latin-1"
-        )
-    )
-    catalog_object_id = add_object(f"<< /Type /Catalog /Pages {pages_object_id} 0 R >>".encode("latin-1"))
 
+def _assemble_pdf(objects: list[bytes], catalog_object_id: int) -> bytes:
     xref_offsets = [0]
     pdf = bytearray(b"%PDF-1.4\n")
     for object_number, payload in enumerate(objects, start=1):
@@ -91,6 +95,4 @@ def write_simple_pdf(path: Path, lines: list[str]) -> None:
             "latin-1"
         )
     )
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(pdf)
+    return bytes(pdf)
