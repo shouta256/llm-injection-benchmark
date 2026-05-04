@@ -8,7 +8,8 @@ The goal of this research task is not to create dangerous real-world exploits, b
 
 ## 2. Existing Dataset Review
 
-The current dataset contains 55 prompts across 5 categories, with 11 prompts per category:
+The original baseline dataset contained 55 prompts across 5 categories, with 11 prompts per category.
+The current merged benchmark dataset in `prompts/prompts.jsonl` contains 122 prompts.
 
 - `direct_override`
 - `roleplay_framing`
@@ -83,7 +84,7 @@ These patterns may work because language models often try to be helpful, follow 
 
 ## 5. Gaps in the Current Dataset
 
-The current dataset is already useful, but several improvements are possible:
+The original baseline dataset was already useful, but several improvements were possible:
 
 - Too many direct command variations in `direct_override`
 - Too much reliance on authority personas in `roleplay_framing`
@@ -112,7 +113,7 @@ Each candidate prompt was written using the following principles:
 
 ## 8. Final Assessment
 
-The current benchmark already covers the major prompt injection categories well. The largest improvement opportunities are:
+The benchmark covers the major prompt injection categories well. The largest improvement opportunities are:
 
 - more diverse wording in `direct_override`
 - broader scenario framing in `roleplay_framing`

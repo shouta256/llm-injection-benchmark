@@ -4,7 +4,7 @@ A reproducible local benchmark for comparing prompt injection resistance across 
 
 ## What This Repository Delivers
 
-- `prompts/prompts.jsonl`: 55 benchmark prompts across 5 attack categories
+- `prompts/prompts.jsonl`: 122 benchmark prompts across 5 attack categories
 - `scripts/run_benchmark.py`: automated runner for local models
 - `scripts/generate_artifacts.py`: leaderboard, metrics, figures, and report generation
 - `scripts/demo.py`: one-command mock demo that generates all deliverables without external dependencies
@@ -18,6 +18,9 @@ A reproducible local benchmark for comparing prompt injection resistance across 
 - `figures/category_heatmap.svg`: per-category ASR heatmap
 - `report/report.md`: readable benchmark summary
 - `report/report.pdf`: PDF export for submission/demo use
+
+The checked-in report/results currently reflect the latest four-model Ollama run:
+`llama3.1-8b`, `qwen2.5-7b`, `mistral-7b`, and `gemma3-4b`.
 
 ## Benchmark Design
 
@@ -123,7 +126,7 @@ python3 scripts/run_mac_lite.py --model <your_local_ollama_tag> --per-category-l
 
 ## Proper Mac Full Run
 
-If you want a proper benchmark result on a Mac only, run the full 55-prompt suite with one local model and throttling.
+If you want a proper benchmark result on a Mac only, run the full 122-prompt suite with one local model and throttling.
 
 ```bash
 python3 scripts/run_mac_full.py --model <your_local_ollama_tag>

@@ -1,0 +1,22 @@
+{
+  "generated_at_utc": "2026-05-02T23:13:11+00:00",
+  "total_models": 2,
+  "total_categories": 5,
+  "total_evaluations": 244,
+  "total_breaches": 49,
+  "overall_asr_percent": 20.08,
+  "strongest_model": "qwen2.5-7b",
+  "strongest_model_asr_percent": 19.67,
+  "weakest_model": "qwen2.5-0.5b",
+  "weakest_model_asr_percent": 20.49,
+  "most_vulnerable_category": {
+    "category": "data_exfiltration",
+    "label": "Data Exfiltration",
+    "mean_asr": 0.2812
+  },
+  "most_resistant_category": {
+    "category": "indirect_injection",
+    "label": "Indirect Injection",
+    "mean_asr": 0.1304
+  }
+}

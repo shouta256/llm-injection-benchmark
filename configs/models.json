@@ -6,6 +6,11 @@
       "notes": "Meta local baseline via Ollama"
     },
     {
+      "alias": "llama3-8b",
+      "model_name": "llama3:8b",
+      "notes": "Older Meta local baseline via Ollama"
+    },
+    {
       "alias": "mistral-7b",
       "model_name": "mistral:7b",
       "notes": "Mistral AI local baseline via Ollama"
@@ -14,6 +19,16 @@
       "alias": "qwen2.5-7b",
       "model_name": "qwen2.5:7b",
       "notes": "Alibaba local baseline via Ollama"
+    },
+    {
+      "alias": "qwen2.5-0.5b",
+      "model_name": "qwen2.5:0.5b",
+      "notes": "Alibaba Qwen 2.5 small local baseline via Ollama"
+    },
+    {
+      "alias": "gemma3-4b",
+      "model_name": "gemma3:4b",
+      "notes": "Google Gemma 3 local baseline via Ollama"
     }
   ]
 }

@@ -1,0 +1,3 @@
+model_alias,model_name,total_prompts,breaches,asr,asr_percent,worst_category_asr,mean_category_asr,rank
+qwen2.5-7b,qwen2.5:7b,122,24,0.1967,19.67,0.4062,0.1785,1
+qwen2.5-0.5b,qwen2.5:0.5b,122,25,0.2049,20.49,0.3478,0.2087,2
